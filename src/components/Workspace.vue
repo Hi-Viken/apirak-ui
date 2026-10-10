@@ -722,10 +722,22 @@ async function execute(
 ): Promise<{ response: ResponseData; variables: VariableList }> {
   let response: ResponseData
   const started = performance.now()
+  let requestHeaders: Record<string, string> = {}
+  let requestBody = ''
   try {
     const request = buildRequest(item, draft, server.value, variables, credentials.value, props.spec, requestFiles)
+    for (const [name, value] of request.options.headers as any) requestHeaders[name] = value
+    const rawBody = (request.options as any).body
+    if (typeof rawBody === 'string') requestBody = rawBody
+    else if (rawBody instanceof URLSearchParams) requestBody = rawBody.toString()
+    else if (rawBody instanceof FormData) {
+      for (const [key, value] of rawBody.entries())
+        requestBody += `${key}=${value instanceof File ? `[file: ${value.name}]` : value}\n`
+    } else if (rawBody) requestBody = String(rawBody)
     response = await sendRequest(request, signal)
     response.request = `${item.method.toUpperCase()} ${request.url}\n${[...(request.options.headers as any)].map(([name, value]: [string, string]) => `${name}: ${/authorization|cookie|key|token|secret/i.test(name) ? '[redacted]' : value}`).join('\n')}`
+    response.requestHeaders = requestHeaders
+    response.requestBody = requestBody
   } catch (error) {
     if ((error instanceof DOMException && error.name === 'AbortError') || signal.aborted)
       throw new DOMException('Request cancelled', 'AbortError')
@@ -739,6 +751,8 @@ async function execute(
         ? `⚠️ ${message}\n\nPossible causes:\n• The server is not reachable\n• CORS policy blocked the request — the server must allow origin: ${location.origin}\n• Mixed content (HTTPS page requesting HTTP resource)\n• Invalid SSL certificate\n\nTo fix CORS, configure the server to send:\n  Access-Control-Allow-Origin: ${location.origin}\n  Access-Control-Allow-Methods: *\n  Access-Control-Allow-Headers: *`
         : message,
       headers: {},
+      requestHeaders,
+      requestBody,
       duration: Math.round(performance.now() - started),
       size: 0,
       corsError: isNetworkError,

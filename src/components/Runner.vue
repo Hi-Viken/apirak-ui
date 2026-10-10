@@ -92,7 +92,40 @@
             <span>{{ result.name }}</span>
             <span>{{ result.duration }} ms</span>
           </summary>
-          <pre>{{ result.body }}</pre>
+          <div class="result-detail">
+            <details class="result-section">
+              <summary>
+                <ChevronRight class="expand-chevron" :size="13" />
+                {{ $t('runner.requestHeaders') }}
+              </summary>
+              <pre v-if="result.requestHeaders && Object.keys(result.requestHeaders).length">{{ formatHeaders(result.requestHeaders) }}</pre>
+              <p v-else class="none">{{ $t('runner.none') }}</p>
+            </details>
+            <details class="result-section" open>
+              <summary>
+                <ChevronRight class="expand-chevron" :size="13" />
+                {{ $t('runner.requestBody') }}
+              </summary>
+              <pre v-if="result.requestBody">{{ result.requestBody }}</pre>
+              <p v-else class="none">{{ $t('runner.none') }}</p>
+            </details>
+            <details class="result-section">
+              <summary>
+                <ChevronRight class="expand-chevron" :size="13" />
+                {{ $t('runner.responseHeaders') }}
+              </summary>
+              <pre v-if="result.headers && Object.keys(result.headers).length">{{ formatHeaders(result.headers) }}</pre>
+              <p v-else class="none">{{ $t('runner.none') }}</p>
+            </details>
+            <details class="result-section" open>
+              <summary>
+                <ChevronRight class="expand-chevron" :size="13" />
+                {{ $t('runner.responseBody') }}
+              </summary>
+              <pre v-if="result.body">{{ result.body }}</pre>
+              <p v-else class="none">{{ $t('runner.none') }}</p>
+            </details>
+          </div>
         </details>
         <button class="text-button" @click="exportResults">
           <Download :size="16" />
@@ -310,5 +343,11 @@ function exportResults() {
     new Blob([JSON.stringify(results.value.map(({ blob, ...r }) => r), null, 2)], { type: 'application/json' }),
     'runner-results.json'
   )
+}
+
+function formatHeaders(headers: Record<string, string>): string {
+  return Object.entries(headers)
+    .map(([name, value]) => `${name}: ${value}`)
+    .join('\n')
 }
 </script>
