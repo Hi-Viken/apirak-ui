@@ -178,6 +178,8 @@ export default {
   },
   runner: {
     title: 'Collection runner',
+    editRequest: 'Edit request: {name}',
+    done: 'Done',
     importCollection: 'Import saved collection',
     exportCollection: 'Export collection',
     collection: 'Collection',

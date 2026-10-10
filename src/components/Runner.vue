@@ -66,7 +66,7 @@
           <button
             class="runner-request"
             :disabled="!getOperation(request.operationId) || running"
-            @click="openRequest(request)"
+            @click="editRequest(request)"
           >
             <Method :method="getOperation(request.operationId)?.method || 'get'" />
             <span>{{ getOperation(request.operationId)?.summary || request.operationId }}</span>
@@ -109,6 +109,17 @@
         @close="showAddModal = false"
         @add-operations="addOperations"
       />
+
+      <RunnerRequestEditor
+        v-if="editingRequest && getOperation(editingRequest.operationId)"
+        :request="editingRequest"
+        :operation="getOperation(editingRequest.operationId)!"
+        :spec="spec"
+        :variables="variables"
+        :output-definitions="outputDefinitions"
+        @change="(draft) => onEditDraft(editingRequest!.id, draft)"
+        @close="editingRequest = null"
+      />
     </template>
     <p v-else class="empty">{{ $t('runner.noCollections') }}</p>
   </section>
@@ -122,8 +133,9 @@ import IconButton from './ui/IconButton.vue'
 import Method from './ui/Method.vue'
 import PlayIcon from './ui/PlayIcon.vue'
 import AddToRunnerModal from './ui/AddToRunnerModal.vue'
+import RunnerRequestEditor from './ui/RunnerRequestEditor.vue'
 import { downloadBlob, makeDraft } from '@/lib/api'
-import type { Draft, Notify, Operation, OpenApiDocument, RequestCollection, ResponseData, SavedRequest, Variables } from '@/types'
+import type { Draft, Notify, Operation, OpenApiDocument, RequestCollection, ResponseData, Variables } from '@/types'
 
 const { t } = useI18n()
 
@@ -143,7 +155,6 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   change: [collections: RequestCollection[]]
-  open: [operation: Operation | undefined, draft: Draft, saved: SavedRequest]
 }>()
 
 const selected = ref(props.collections[0]?.id || '')
@@ -154,6 +165,12 @@ const stopOnError = ref(false)
 const controller = ref<AbortController | null>(null)
 const importInput = ref<HTMLInputElement>()
 const showAddModal = ref(false)
+const editingRequest = ref<{ id: string; operationId: string; draft: Draft; enabled?: boolean } | null>(null)
+
+// 输出变量定义（来自所有集合请求），供编辑器内 {{@name}} 引用解析
+const outputDefinitions = computed(() =>
+  props.collections.flatMap((collection) => collection.requests.flatMap((request) => request.draft.outputs || []))
+)
 
 const collection = computed(() => props.collections.find((item) => item.id === selected.value) || props.collections[0])
 
@@ -249,9 +266,21 @@ function toggleRequest(id: string, enabled: boolean) {
   update({ requests: collection.value!.requests.map((item) => item.id === id ? { ...item, enabled } : item) })
 }
 
-function openRequest(request: any) {
+function editRequest(request: any) {
   const operation = getOperation(request.operationId)
-  emit('open', operation, request.draft, { collectionId: collection.value!.id, requestId: request.id })
+  if (!operation) {
+    props.notify(t('notify.operationRemoved'), true)
+    return
+  }
+  editingRequest.value = request
+}
+
+function onEditDraft(id: string, draft: Draft) {
+  if (!collection.value) return
+  const requests = collection.value.requests.map((request) =>
+    request.id === id ? { ...request, draft: JSON.parse(JSON.stringify(draft)) } : request
+  )
+  update({ requests })
 }
 
 function removeRequest(id: string) {

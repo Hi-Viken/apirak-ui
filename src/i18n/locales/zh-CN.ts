@@ -178,6 +178,8 @@ export default {
   },
   runner: {
     title: '集合运行器',
+    editRequest: '编辑请求：{name}',
+    done: '完成',
     importCollection: '导入已保存的集合',
     exportCollection: '导出集合',
     collection: '集合',

@@ -251,14 +251,6 @@
         {{ $t('workspace.storageError') }}
       </p>
 
-      <div
-        v-if="savedRequest && operation && savedRequest.operationId === operation.id && view === 'requests'"
-        class="saved-request-bar"
-      >
-        <span>{{ $t('workspace.editingSaved') }}</span>
-        <button @click="saveToCollection">{{ $t('workspace.saveToCollection') }}</button>
-      </div>
-
       <div class="workspace-content">
         <RequestView
           v-if="view === 'requests' && active && operation"
@@ -326,7 +318,6 @@
           @change="onCollectionsChange"
           :operations="operations"
           :spec="props.spec"
-          @open="openOperation"
           :execute="execute"
           :variables="state.variables"
           :notify="notify"
@@ -407,7 +398,6 @@ import type {
   Operation,
   ResponseData,
   RequestCollection,
-  SavedRequest,
   StorageLike,
   Variables as VariableList,
 } from '@/types'
@@ -484,7 +474,6 @@ const requestTreeRef = ref<HTMLDivElement>()
 const responses = ref<Record<string, ResponseData>>({})
 const pending = ref<Record<string, boolean>>({})
 const files = ref<Record<string, Record<string, File | undefined>>>({})
-const savedRequest = ref<SavedRequest | null>(null)
 const contextMenu = ref<{ id: string; x: number; y: number } | null>(null)
 const showAddRunnerModal = ref(false)
 const pendingAddOperationId = ref<string | null>(null)
@@ -629,14 +618,13 @@ function toggleCollectionSections() {
   })
 }
 
-function openOperation(item?: Operation, draft?: Draft, saved?: SavedRequest) {
+function openOperation(item?: Operation, draft?: Draft) {
   if (!item) {
     props.notify(t('notify.operationRemoved'), true)
     return
   }
   dispatch({ type: 'open', id: item.id, draft: draft || makeDraft(item, props.spec) })
   if (draft) dispatch({ type: 'draft', id: item.id, patch: draft })
-  savedRequest.value = saved ? { ...saved, operationId: item.id } : null
   view.value = 'requests'
   sidebarOpen.value = false
 }
@@ -848,9 +836,6 @@ function onServerChange(value: string) {
 
 function onDraftChange(patch: Draft) {
   if (operation.value) dispatch({ type: 'draft', id: operation.value.id, patch })
-  // 集合请求：每次编辑（参数/请求头/请求体/form/outputs）即时回写集合，
-  // 否则不点「保存到集合」就切换/刷新/运行，改动会丢（"集合中配置没保存"）。
-  if (savedRequest.value && active.value) writeDraftToCollection(active.value.draft)
 }
 
 function onFile(name: string, file: File | undefined) {
@@ -877,7 +862,6 @@ function onCredentialsChange(next: Credentials) {
 
 function onAuthEnabled(authEnabled: boolean) {
   if (operation.value) dispatch({ type: 'draft', id: operation.value.id, patch: { authEnabled } })
-  if (savedRequest.value && active.value) writeDraftToCollection(active.value.draft)
 }
 
 function onHistoryOpen(id: string) {
@@ -906,36 +890,6 @@ function handleRunnerFromOverview() {
     })
   }
   view.value = 'runner'
-}
-
-/**
- * 把给定 draft 回写到「正在编辑的集合请求」并立即持久化（第 1064 行的 deep watch 会接管存储）。
- * 返回是否真的发生了回写；没有 savedRequest（即当前请求不属于任何集合）时返回 false。
- */
-function writeDraftToCollection(draft: Draft): boolean {
-  if (!savedRequest.value || !active.value) return false
-  const { collectionId, requestId } = savedRequest.value
-  dispatch({
-    type: 'update',
-    patch: {
-      collections: state.value.collections.map((collection: any) =>
-        collection.id === collectionId
-          ? {
-              ...collection,
-              requests: collection.requests.map((request: any) =>
-                request.id === requestId ? { ...request, draft: cloneDraft(draft) } : request
-              ),
-            }
-          : collection
-      ),
-    },
-  })
-  return true
-}
-
-function saveToCollection() {
-  if (!writeDraftToCollection(active.value.draft)) return
-  props.notify(t('notify.collectionUpdated'))
 }
 
 function onTabContextMenu(event: MouseEvent, id: string) {
