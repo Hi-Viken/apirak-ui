@@ -724,8 +724,12 @@ async function execute(
   const started = performance.now()
   let requestHeaders: Record<string, string> = {}
   let requestBody = ''
+  let requestUrl = ''
+  let requestMethod = ''
   try {
     const request = buildRequest(item, draft, server.value, variables, credentials.value, props.spec, requestFiles)
+    requestUrl = request.url
+    requestMethod = String(request.options.method || '')
     for (const [name, value] of request.options.headers as any) requestHeaders[name] = value
     const rawBody = (request.options as any).body
     if (typeof rawBody === 'string') requestBody = rawBody
@@ -738,6 +742,8 @@ async function execute(
     response.request = `${item.method.toUpperCase()} ${request.url}\n${[...(request.options.headers as any)].map(([name, value]: [string, string]) => `${name}: ${/authorization|cookie|key|token|secret/i.test(name) ? '[redacted]' : value}`).join('\n')}`
     response.requestHeaders = requestHeaders
     response.requestBody = requestBody
+    response.url = requestUrl
+    response.method = requestMethod
   } catch (error) {
     if ((error instanceof DOMException && error.name === 'AbortError') || signal.aborted)
       throw new DOMException('Request cancelled', 'AbortError')
@@ -753,6 +759,8 @@ async function execute(
       headers: {},
       requestHeaders,
       requestBody,
+      url: requestUrl,
+      method: requestMethod,
       duration: Math.round(performance.now() - started),
       size: 0,
       corsError: isNetworkError,

@@ -202,6 +202,7 @@ export default {
     requestBody: '請求主體',
     responseHeaders: '回應標頭',
     responseBody: '回應內容',
+    requestUrl: '請求 URL',
     none: '無',
     exportResults: '匯出結果',
     noCollections: '沒有已儲存的集合。',

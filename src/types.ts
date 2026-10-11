@@ -40,6 +40,8 @@ export interface ResponseData extends Record<string, any> {
   headers?: Record<string, string>
   requestHeaders?: Record<string, string>
   requestBody?: string
+  url?: string
+  method?: string
   duration?: number
   size?: number
   blob?: Blob

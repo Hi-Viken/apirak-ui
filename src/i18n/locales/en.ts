@@ -202,6 +202,7 @@ export default {
     requestBody: 'Request body',
     responseHeaders: 'Response headers',
     responseBody: 'Response body',
+    requestUrl: 'Request URL',
     none: 'None',
     exportResults: 'Export results',
     noCollections: 'No saved collections.',

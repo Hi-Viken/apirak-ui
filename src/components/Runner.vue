@@ -93,6 +93,10 @@
             <span>{{ result.duration }} ms</span>
           </summary>
           <div class="result-detail">
+            <div v-if="result.url" class="result-url">
+              <span class="result-url-label">{{ $t('runner.requestUrl') }}</span>
+              <code>{{ result.method }} {{ result.url }}</code>
+            </div>
             <details class="result-section">
               <summary>
                 <ChevronRight class="expand-chevron" :size="13" />

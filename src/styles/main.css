@@ -336,6 +336,9 @@ details[open] > summary .expand-chevron { transform: rotate(90deg); }
 .runner-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; border-top: 1px solid var(--border); padding: 16px 0; }.runner-toolbar > label:first-child { flex-direction: row; align-items: center; font-size: 12px; }.runner-toolbar input[type='number'] { width: 90px; }.runner-toolbar .primary { margin-left: auto; }
 .runner-row { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--border); }.runner-request { flex: 1; min-width: 0; justify-content: flex-start; border: 0; background: transparent; text-align: left; }.runner-request > span:last-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }.runner-requests { margin-bottom: 22px; }
 .result-detail { padding: 4px 0 8px 18px; }
+.result-url { display: flex; align-items: baseline; gap: 8px; padding: 6px 0 10px; }
+.result-url-label { flex-shrink: 0; color: var(--muted); font-size: 11px; }
+.result-url code { font-family: 'IBM Plex Mono', Consolas, monospace; font-size: 11px; color: var(--text); overflow-wrap: anywhere; }
 .result-section { border-bottom: 1px dashed var(--border); }
 .result-section > summary { padding: 8px 0; font-size: 12px; color: var(--muted); }
 .result-section > summary .expand-chevron { transform: rotate(0); }

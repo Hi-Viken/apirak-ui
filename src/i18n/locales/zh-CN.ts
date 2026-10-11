@@ -202,6 +202,7 @@ export default {
     requestBody: '请求体',
     responseHeaders: '响应头',
     responseBody: '响应内容',
+    requestUrl: '请求 URL',
     none: '无',
     exportResults: '导出结果',
     noCollections: '没有已保存的集合。',
