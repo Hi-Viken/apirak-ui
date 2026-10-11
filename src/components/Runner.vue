@@ -291,20 +291,45 @@ async function run() {
 function triggerImport() { importInput.value?.click() }
 
 async function onImportFile(event: Event) {
+  const input = event.target as HTMLInputElement
   try {
-    const file = (event.target as HTMLInputElement).files?.[0]
+    const file = input.files?.[0]
     if (!file) return
-    const imported = JSON.parse(await file.text())
-    if (!imported.name || !Array.isArray(imported.requests) || imported.requests.some((item: any) => !item?.draft || !props.operations.some((op) => op.id === item.operationId)))
-      throw new Error('Invalid collection or operations not present in this specification.')
-    if (props.collections.some((item) => item.name.trim().toLowerCase() === String(imported.name).trim().toLowerCase())) {
-      throw new Error(t('runner.duplicateCollectionName', { name: String(imported.name).trim() }))
+    let text: string
+    try {
+      text = await file.text()
+    } catch {
+      throw new Error(t('runner.import.readFailed'))
     }
+    let imported: any
+    try {
+      imported = JSON.parse(text)
+    } catch {
+      throw new Error(t('runner.import.notJson'))
+    }
+    if (typeof imported !== 'object' || imported === null || Array.isArray(imported))
+      throw new Error(t('runner.import.invalidFormat'))
+    if (!imported.name || typeof imported.name !== 'string' || !imported.name.trim())
+      throw new Error(t('runner.import.missingName'))
+    if (!Array.isArray(imported.requests))
+      throw new Error(t('runner.import.requestsNotArray'))
+    const missingIndex = imported.requests.findIndex((item: any) => !item || !item.draft)
+    if (missingIndex >= 0)
+      throw new Error(t('runner.import.requestMissingDraft', { index: missingIndex + 1 }))
+    const badCount = imported.requests.filter(
+      (item: any) => !props.operations.some((op: any) => op.id === item?.operationId)
+    ).length
+    if (badCount > 0)
+      throw new Error(t('runner.import.operationsNotInSpec', { count: badCount }))
+    if (props.collections.some((item) => item.name.trim().toLowerCase() === imported.name.trim().toLowerCase()))
+      throw new Error(t('runner.duplicateCollectionName', { name: imported.name.trim() }))
     const entry = { ...imported, id: crypto.randomUUID() }
     emit('change', [...props.collections, entry])
     selected.value = entry.id
   } catch (error) {
     props.notify(error instanceof Error ? error.message : String(error), true)
+  } finally {
+    input.value = ''
   }
 }
 

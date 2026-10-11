@@ -256,6 +256,15 @@ export default {
     duplicateCollectionName: '集合名称「{name}」已存在，请换一个名称',
     duplicateGroupName: '组名重复',
     resolveDuplicateGroupNames: '存在重复的组名，请修改一致后再关闭',
+    import: {
+      readFailed: '无法读取文件，请重试',
+      notJson: '文件内容不是合法的 JSON',
+      invalidFormat: '文件格式不正确：根节点应为一个集合对象',
+      missingName: '文件缺少集合名称（name 字段）',
+      requestsNotArray: '文件格式不正确：requests 必须是一个数组',
+      requestMissingDraft: '第 {index} 个请求缺少 draft 字段，无法导入',
+      operationsNotInSpec: '有 {count} 个请求的接口不属于当前 API 规格（operationId 不匹配），请确认是在同一规格下导出的集合',
+    },
   },
   contextMenu: {
     actions: '请求标签操作',

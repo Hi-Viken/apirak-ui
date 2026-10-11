@@ -257,6 +257,15 @@ export default {
     duplicateCollectionName: 'A collection named "{name}" already exists. Choose another name.',
     duplicateGroupName: 'Duplicate group name',
     resolveDuplicateGroupNames: 'Some groups share the same name. Rename them before closing.',
+    import: {
+      readFailed: 'Could not read the file. Please try again.',
+      notJson: 'The file content is not valid JSON.',
+      invalidFormat: 'Invalid format: the file root must be a collection object.',
+      missingName: 'The file is missing a collection name (the "name" field).',
+      requestsNotArray: 'Invalid format: "requests" must be an array.',
+      requestMissingDraft: 'Request #{index} is missing its "draft" field and cannot be imported.',
+      operationsNotInSpec: '{count} request(s) reference an operation that does not exist in the current API spec (operationId mismatch). Make sure the collection was exported from this spec.',
+    },
   },
   contextMenu: {
     actions: 'Request tab actions',

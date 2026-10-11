@@ -256,6 +256,15 @@ export default {
     duplicateCollectionName: '集合名稱「{name}」已存在，請換一個名稱',
     duplicateGroupName: '組名重複',
     resolveDuplicateGroupNames: '存在重複的組名，請修改一致後再關閉',
+    import: {
+      readFailed: '無法讀取檔案，請重試',
+      notJson: '檔案內容不是合法的 JSON',
+      invalidFormat: '檔案格式不正確：根節點應為一個集合物件',
+      missingName: '檔案缺少集合名稱（name 欄位）',
+      requestsNotArray: '檔案格式不正確：requests 必須是一個陣列',
+      requestMissingDraft: '第 {index} 個請求缺少 draft 欄位，無法匯入',
+      operationsNotInSpec: '有 {count} 個請求的介面不屬於目前 API 規格（operationId 不符），請確認是在同一規格下匯出的集合',
+    },
   },
   contextMenu: {
     actions: '請求分頁操作',
