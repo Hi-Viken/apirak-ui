@@ -44,6 +44,9 @@
         <IconButton :label="$t('runner.addInterface')" :disabled="running" @click="showAddModal = true">
           <Plus :size="19" />
         </IconButton>
+        <IconButton :label="$t('runner.editCollectionSettings')" :disabled="running" @click="showSettings = true">
+          <Settings :size="17" />
+        </IconButton>
         <button v-if="running" class="primary" @click="controller?.abort()">
           <Square :size="15" />
           {{ $t('runner.stop') }}
@@ -157,6 +160,16 @@
         @change="(draft) => onEditDraft(editingRequest!.id, draft)"
         @close="editingRequest = null"
       />
+
+      <CollectionSettingsModal
+        v-if="showSettings && collection"
+        :settings="collection.settings"
+        :variables="variables"
+        :output-definitions="outputDefinitions"
+        :requests="requestOptions"
+        @change="onCollectionSettings"
+        @close="showSettings = false"
+      />
     </template>
     <p v-else class="empty">{{ $t('runner.noCollections') }}</p>
   </section>
@@ -165,14 +178,15 @@
 <script setup lang="ts">
 import { ref, computed, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ArrowDown, ArrowUp, ChevronRight, Download, Plus, Square, Trash2, Upload } from 'lucide-vue-next'
+import { ArrowDown, ArrowUp, ChevronRight, Download, Plus, Settings, Square, Trash2, Upload } from 'lucide-vue-next'
 import IconButton from './ui/IconButton.vue'
 import Method from './ui/Method.vue'
 import PlayIcon from './ui/PlayIcon.vue'
 import AddToRunnerModal from './ui/AddToRunnerModal.vue'
 import RunnerRequestEditor from './ui/RunnerRequestEditor.vue'
-import { downloadBlob, makeDraft } from '@/lib/api'
-import type { Draft, Notify, Operation, OpenApiDocument, RequestCollection, ResponseData, Variables } from '@/types'
+import CollectionSettingsModal from './ui/CollectionSettingsModal.vue'
+import { applyCollectionSettings, downloadBlob, makeDraft } from '@/lib/api'
+import type { Draft, KeyValueRow, Notify, Operation, OpenApiDocument, RequestCollection, ResponseData, Variables } from '@/types'
 
 const { t } = useI18n()
 
@@ -202,6 +216,7 @@ const stopOnError = ref(false)
 const controller = ref<AbortController | null>(null)
 const importInput = ref<HTMLInputElement>()
 const showAddModal = ref(false)
+const showSettings = ref(false)
 const editingRequest = ref<{ id: string; operationId: string; draft: Draft; enabled?: boolean } | null>(null)
 
 // 输出变量定义（来自所有集合请求），供编辑器内 {{@name}} 引用解析
@@ -210,6 +225,14 @@ const outputDefinitions = computed(() =>
 )
 
 const collection = computed(() => props.collections.find((item) => item.id === selected.value) || props.collections[0])
+
+// 传给集合配置弹窗的接口清单（id + 展示名），用于「指定接口」勾选
+const requestOptions = computed(() =>
+  (collection.value?.requests || []).map((request) => ({
+    id: request.id,
+    label: getOperation(request.operationId)?.summary || request.operationId,
+  }))
+)
 
 onUnmounted(() => controller.value?.abort())
 
@@ -241,7 +264,9 @@ async function run() {
       if (abort.signal.aborted) break
       const operation = getOperation(request.operationId)
       if (!operation) { props.notify(t('notify.operationRemoved'), true); continue }
-      const result = await props.execute(operation, request.draft, currentVariables, abort.signal)
+      // 把集合的「多组共享配置」叠加合并进该请求（按组勾选的目标接口 + 组间同名后者覆盖 + 请求自身最优先），不改动已存储的 draft。
+      const mergedDraft = applyCollectionSettings(request.id, collection.value!.settings, request.draft)
+      const result = await props.execute(operation, mergedDraft, currentVariables, abort.signal)
       if (abort.signal.aborted) break
       currentVariables = result.variables
       results.value = [...results.value, { ...result.response, id: request.id, name: operation.summary || operation.path }]
@@ -318,6 +343,10 @@ function onEditDraft(id: string, draft: Draft) {
     request.id === id ? { ...request, draft: JSON.parse(JSON.stringify(draft)) } : request
   )
   update({ requests })
+}
+
+function onCollectionSettings(settings: { id: string; name: string; headers?: KeyValueRow[]; parameters?: KeyValueRow[]; targets?: string[] }[]) {
+  update({ settings })
 }
 
 function removeRequest(id: string) {

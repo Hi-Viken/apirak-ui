@@ -60,11 +60,22 @@ export interface CollectionRequest {
   enabled?: boolean
 }
 
+export interface CollectionSettingGroup {
+  id: string
+  name: string
+  headers?: KeyValueRow[]
+  parameters?: KeyValueRow[]
+  /** 该组生效的接口 request id 列表；一个接口可被多个组勾选（运行时叠加合并） */
+  targets?: string[]
+}
+
 export interface RequestCollection {
   id: string
   name: string
   requests: CollectionRequest[]
   delay?: number
+  /** 多组共享配置：每组可配不同的请求头/参数，并各自勾选要生效的接口；运行时叠加合并 */
+  settings?: CollectionSettingGroup[]
 }
 
 export interface StorageLike {

@@ -6,6 +6,8 @@ import {
   credentialIssues,
   credentialSatisfied,
   credentialVariableIssues,
+  mergeCollectionRows,
+  applyCollectionSettings,
   normalizeVarName,
   replaceVariables,
   resolveCredential,
@@ -327,5 +329,86 @@ describe('凭据变量取不到值时，能说清是哪一种取不到', () => {
       (key: string, params?: any) => `${key}|${params?.available ?? ''}`
     )
     expect(messages[0]).toContain('auth.noVariablesYet')
+  })
+})
+
+describe('mergeCollectionRows', () => {
+  const a = { name: 'Authorization', value: 'Bearer c', enabled: true }
+  const b = { name: 'X-Trace', value: '1', enabled: true }
+  const p1 = { name: 'page', location: 'query', value: '1', enabled: true }
+  const p2 = { name: 'apiKey', location: 'header', value: 'k', enabled: true }
+
+  it('集合级为空时等价于请求级原数组', () => {
+    expect(mergeCollectionRows(undefined, [a], false)).toEqual([a])
+    expect(mergeCollectionRows([], [a], true)).toEqual([a])
+  })
+
+  it('请求级无配置时直接用集合级基底', () => {
+    expect(mergeCollectionRows([a, b], undefined, false)).toEqual([a, b])
+  })
+
+  it('请求级同名项覆盖集合级（header 忽略大小写）', () => {
+    const override = { name: 'authorization', value: 'Bearer x', enabled: true }
+    expect(mergeCollectionRows([a, b], [override], false)).toEqual([override, b])
+  })
+
+  it('parameter 按 名称+位置 去重，不同 location 的同名参数可并存', () => {
+    const override = { name: 'apiKey', location: 'query', value: 'q', enabled: true }
+    const merged = mergeCollectionRows([p1, p2], [override], true)
+    expect(merged).toContainEqual(p2)
+    expect(merged).toContainEqual(override)
+    expect(merged).toContainEqual(p1)
+  })
+
+  it('请求级未声明同名项时，集合级该项保留', () => {
+    // 集合有 a、b；请求只覆盖了 a；b 应保留，且 a 的值为请求级覆盖值
+    const merged = mergeCollectionRows([a, b], [{ name: 'Authorization', value: 'Bearer x' }], false)
+    expect(merged).toContainEqual(b)
+    expect(merged.find((r) => r.name.toLowerCase() === 'authorization')?.value).toBe('Bearer x')
+  })
+})
+
+describe('applyCollectionSettings', () => {
+  const draft = { headers: [{ name: 'Accept', value: 'application/json', enabled: true }], parameters: [] }
+  const gAuth = { id: 'g1', name: 'auth', headers: [{ name: 'Authorization', value: 'Bearer x', enabled: true }], targets: ['r1', 'r2'] }
+  const gVer = { id: 'g2', name: 'ver', headers: [{ name: 'X-Version', value: 'v2', enabled: true }], targets: ['r2', 'r3'] }
+
+  it('未被任何组勾选的接口只保留自身 draft', () => {
+    const merged = applyCollectionSettings('r9', [gAuth, gVer], draft)
+    expect(merged.headers).toEqual(draft.headers)
+  })
+
+  it('被一个组勾选时叠加该组配置', () => {
+    const merged = applyCollectionSettings('r1', [gAuth, gVer], draft)
+    expect(merged.headers).toContainEqual(gAuth.headers![0])
+    expect(merged.headers).toContainEqual(draft.headers[0])
+    expect(merged.headers).not.toContainEqual(gVer.headers![0])
+  })
+
+  it('被多个组勾选时汇总所有组的配置', () => {
+    const merged = applyCollectionSettings('r2', [gAuth, gVer], draft)
+    expect(merged.headers).toContainEqual(gAuth.headers![0])
+    expect(merged.headers).toContainEqual(gVer.headers![0])
+    expect(merged.headers).toContainEqual(draft.headers[0])
+  })
+
+  it('组间同名项后者覆盖（按数组顺序）', () => {
+    const overlapping = [
+      { id: 'a', name: 'a', headers: [{ name: 'X-Token', value: 'first', enabled: true }], targets: ['r1'] },
+      { id: 'b', name: 'b', headers: [{ name: 'X-Token', value: 'second', enabled: true }], targets: ['r1'] },
+    ]
+    const merged = applyCollectionSettings('r1', overlapping, draft)
+    expect(merged.headers!.find((h: { name: string }) => h.name === 'X-Token')?.value).toBe('second')
+  })
+
+  it('请求自身配置最终优先于所有组', () => {
+    const groups = [{ id: 'a', name: 'a', headers: [{ name: 'Accept', value: 'text/html', enabled: true }], targets: ['r1'] }]
+    const merged = applyCollectionSettings('r1', groups, draft)
+    expect(merged.headers!.find((h: { name: string }) => h.name === 'Accept')?.value).toBe('application/json')
+  })
+
+  it('无组时等价于原 draft', () => {
+    expect(applyCollectionSettings('r1', undefined, draft)).toEqual(draft)
+    expect(applyCollectionSettings('r1', [], draft)).toEqual(draft)
   })
 })

@@ -1,6 +1,6 @@
 import { load } from 'js-yaml'
 import { JSONPath } from 'jsonpath-plus'
-import type { AuthStatus } from '@/types'
+import type { AuthStatus, Draft, KeyValueRow } from '@/types'
 
 export const METHODS = ['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace']
 
@@ -303,6 +303,51 @@ export function makeDraft(operation: any, spec: any): any {
     })),
     outputs: [],
     authEnabled: true,
+  }
+}
+
+/**
+ * 集合级共享的 headers/parameters（基底）与单个请求自身的 draft 同名字段合并。
+ * - headers 按名称（忽略大小写）去重；parameters 按「名称 + 位置(location)」去重。
+ * - 请求级同名项覆盖集合级；集合级为空时等价于原数组，旧数据不受影响。
+ * - 不做启用/禁用过滤：保留原行（含 disabled），交给 buildRequest 在发送时统一按 enabled 处理。
+ */
+export function mergeCollectionRows(
+  base: KeyValueRow[] | undefined,
+  override: KeyValueRow[] | undefined,
+  byLocation: boolean
+): KeyValueRow[] {
+  const key = (row: KeyValueRow) =>
+    byLocation ? `${row.name.toLowerCase()}|${row.location || ''}` : row.name.toLowerCase()
+  const map = new Map<string, KeyValueRow>()
+  for (const row of base || []) if (row?.name) map.set(key(row), row)
+  for (const row of override || []) if (row?.name) map.set(key(row), row)
+  return [...map.values()]
+}
+
+/**
+ * 把集合的「多组共享配置」叠加合并进某个请求：
+ * - 收集所有把该接口勾选为生效目标的组（groups 中 targets 含 requestId 的）；
+ * - 组间按数组顺序合并，后者覆盖前者同名项（header 按名、param 按 名+位置）；
+ * - 最后请求自身 draft 作为最优先覆盖层。
+ * 不改动入参，返回新的 draft。
+ */
+export function applyCollectionSettings(
+  requestId: string,
+  groups: { headers?: KeyValueRow[]; parameters?: KeyValueRow[]; targets?: string[] }[] | undefined,
+  requestDraft: Draft
+): Draft {
+  const applicable = (groups || []).filter((group) => (group.targets || []).includes(requestId))
+  let headersBase: KeyValueRow[] = []
+  let parametersBase: KeyValueRow[] = []
+  for (const group of applicable) {
+    headersBase = mergeCollectionRows(headersBase, group.headers, false)
+    parametersBase = mergeCollectionRows(parametersBase, group.parameters, true)
+  }
+  return {
+    ...requestDraft,
+    headers: mergeCollectionRows(headersBase, requestDraft.headers, false),
+    parameters: mergeCollectionRows(parametersBase, requestDraft.parameters, true),
   }
 }
 
