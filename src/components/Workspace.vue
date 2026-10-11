@@ -11,7 +11,7 @@
       <span class="app-version" :title="$t('workspace.frontendVersion')">v{{ APP_VERSION }}</span>
       <a
         class="github-link"
-        href="https://github.com/Hi-Viken/apirak"
+        href="https://github.com/Hi-Viken/apirak-ui"
         target="_blank"
         rel="noreferrer"
         :aria-label="$t('workspace.openOnGithub')"
