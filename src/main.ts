@@ -2,6 +2,18 @@ import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import i18n from './i18n'
 import App from './App.vue'
+
+// 字体本地自足：原先是在 main.css / code-font.css 里 @import Google Fonts 的 CSS2 接口，
+// 那样每个访客都要向 fonts.googleapis.com 发请求，内网/离线环境更是直接取不到字回落到兜底字体。
+// 现在改由 @fontsource 随包打包 —— 字重与原来请求的保持一致，产物同源发布。
+import '@fontsource/ibm-plex-sans/400.css'
+import '@fontsource/ibm-plex-sans/500.css'
+import '@fontsource/ibm-plex-sans/600.css'
+import '@fontsource/ibm-plex-mono/400.css'
+import '@fontsource/ibm-plex-mono/500.css'
+import '@fontsource/jetbrains-mono/400.css'
+import '@fontsource/jetbrains-mono/500.css'
+
 import './styles/main.css'
 import './styles/code-font.css'
 import './styles/tab-context-menu.css'

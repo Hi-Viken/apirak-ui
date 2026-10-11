@@ -1,5 +1,6 @@
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
-
+/* 字体已改为本地自足：不再从 Google Fonts 远程 @import（内网/离线环境取不到字，
+   且会向第三方域名发请求）。IBM Plex Sans / Mono 现由 @fontsource 提供，
+   在 src/main.ts 里随包加载 —— 见那里。 */
 :root {
   font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif;
   font-size: 13px;

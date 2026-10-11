@@ -44,14 +44,30 @@ let editorInstance: any = null
 let monacoLib: any = null
 let decorations: any = null
 
-const MONACO_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs'
-
-// loader.js 全局只能注入一次。以前每个 CodeEditor 实例各自 onMounted 判断
-// `self.monaco` —— 那时 AMD 还没加载完所以恒为 undefined，于是并发挂载会重复插 script，
-// 第二次直接抛 `Identifier '_amdLoaderGlobal' has already been declared`，连带
-// 第一个的 require 回调失败，页面上所有 Monaco 编辑器一起变只读框。
-// 整份约定 promise 共用，同时也是"加载失败后可重试"。
+/**
+ * Monaco 加载：按需动态 import 本地模块（见 src/lib/monaco.ts），产物同源，不走外网。
+ *
+ * 以前是往 <head> 插 cdnjs 的 AMD loader script。那套方案有两个坑：
+ * - 每个实例各自判断 `self.monaco`，而 AMD 还没挂载完时它恒为 undefined，
+ *   并发挂载会重复插 script，第二次直接抛
+ *   `Identifier '_amdLoaderGlobal' has already been declared`，
+ *   连带第一个的 require 回调失败，页面上所有 Monaco 一起变只读框；
+ * - 内网/隔离环境拿不到 CDN，整片编辑器退化。
+ *
+ * 换成 ESM 动态 import 后两者都没了：ESM 模块天然单例，
+ * 这里再包一层 promise 纯粹是为了「失败后可重试」，避免一次网络抖动把全文打回文本框。
+ */
 let monacoLoaderPromise: Promise<any> | null = null
+
+function loadMonaco(): Promise<any> {
+  if (!monacoLoaderPromise) {
+    monacoLoaderPromise = import('@/lib/monaco').then((module) => module.default)
+    monacoLoaderPromise.catch(() => {
+      monacoLoaderPromise = null
+    })
+  }
+  return monacoLoaderPromise
+}
 
 const languageMap: Record<string, string> = {
   plaintext: 'plaintext',
@@ -69,39 +85,11 @@ const languageMap: Record<string, string> = {
 
 const monacoLanguage = computed(() => languageMap[props.language] || props.language || 'plaintext')
 
-function loadMonacoFromCDN(): Promise<any> {
-  if (!monacoLoaderPromise) {
-    monacoLoaderPromise = new Promise<any>((resolve, reject) => {
-      if ((self as any).monaco) {
-        resolve((self as any).monaco)
-        return
-      }
-      const loaderScript = document.createElement('script')
-      loaderScript.src = `${MONACO_CDN}/loader.js`
-      loaderScript.onload = () => {
-        const require = (self as any).require
-        if (!require) {
-          reject(new Error('Monaco AMD loader did not initialize.'))
-          return
-        }
-        require.config({ paths: { vs: MONACO_CDN } })
-        require(['vs/editor/editor.main'], () => resolve((self as any).monaco))
-      }
-      loaderScript.onerror = () => reject(new Error('Failed to load Monaco loader.'))
-      document.head.appendChild(loaderScript)
-    })
-    monacoLoaderPromise.catch(() => {
-      monacoLoaderPromise = null
-    })
-  }
-  return monacoLoaderPromise
-}
-
 onMounted(async () => {
   if (import.meta.env?.MODE === 'test') return
   const timeout = setTimeout(() => { offline.value = true }, 10000)
   try {
-    monacoLib = await loadMonacoFromCDN()
+    monacoLib = await loadMonaco()
     ready.value = true
     clearTimeout(timeout)
     await nextTick()

@@ -1,4 +1,5 @@
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap');
+/* 同理：JetBrains Mono 改由 @fontsource 本地提供（见 src/main.ts），
+   不再远程 @import Google Fonts。 Consolas / monospace 保留作为兜底。 */
 
 code, pre, .code-editor textarea, .method, .server-bar input, .request-url input {
   font-family: 'JetBrains Mono', Consolas, monospace;

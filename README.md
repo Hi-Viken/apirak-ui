@@ -55,6 +55,7 @@ Apirak closes that gap from both sides: it keeps what makes a spec browser pleas
 
 - **A workbench, not just a viewer** — collections, batch Runner, variables and chained outputs, OAuth2 flows, multi-language snippets and client SDK generation.
 - **Zero backend by default** — workspace state lives in `localStorage`: no accounts, no database, no service to run.
+- **Zero external requests** — the Monaco editor and web fonts are bundled from npm and served from the same origin; no CDN, no Google Fonts. The page works the same on an isolated / offline network.
 - **.NET-native embedding** — the built `dist/` ships inside a class library and mounts under any path prefix with two lines, served from the same origin as your `MapOpenApi()` document.
 
 In short: **capability that outgrows Swagger UI, interaction that stays out of your way.**
@@ -149,7 +150,7 @@ In short: **capability that outgrows Swagger UI, interaction that stays out of y
 | Build | Vite 6 + vue-tsc |
 | State Management | Pinia 2 |
 | Internationalization | vue-i18n 10 |
-| Editor | Monaco Editor (@guolao/vue-monaco-editor) |
+| Editor | Monaco Editor (bundled from npm — loaded from the same origin, no CDN) |
 | Utilities | @vueuse/core, js-yaml, jsonpath-plus, marked, DOMPurify, lucide-vue-next |
 | Testing | Vitest 4 + @vue/test-utils + jsdom |
 | Linting | ESLint 9 + eslint-plugin-vue + @typescript-eslint |

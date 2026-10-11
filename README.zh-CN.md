@@ -58,6 +58,7 @@ Apirak 想从两头把这个缝隙补上：保留规范浏览该有的清爽，�
 
 - **是工作台，不只是查看器** —— 集合、批量 Runner、变量与输出变量串联、OAuth2 各流、多语言代码片段与客户端 SDK 生成。
 - **默认零后端** —— 工作区状态全在 `localStorage`，不用建账号、不用起服务。
+- **零外部请求** —— Monaco 编辑器与页面字体都随 npm 包构建进产物、同源加载，不依赖 CDN、不请求 Google Fonts；内网隔离 / 离线环境下功能完全一致。
 - **天生可嵌进 .NET** —— 构建出的 `dist/` 可以打进类库，两行代码挂到任意路径前缀上，与 `MapOpenApi()` 的文档同域提供。
 
 一句话：**能力上比 Swagger UI 够用，操作上不挡你的路。**
@@ -155,7 +156,7 @@ Apirak 想从两头把这个缝隙补上：保留规范浏览该有的清爽，�
 | 构建 | Vite 6 + vue-tsc |
 | 状态管理 | Pinia 2 |
 | 国际化 | vue-i18n 10 |
-| 编辑器 | Monaco Editor（@guolao/vue-monaco-editor） |
+| 编辑器 | Monaco Editor（随 npm 包打包，同源加载，不走 CDN） |
 | 工具库 | @vueuse/core、js-yaml、jsonpath-plus、marked、DOMPurify、lucide-vue-next |
 | 测试 | Vitest 4 + @vue/test-utils + jsdom |
 | 代码规范 | ESLint 9 + eslint-plugin-vue + @typescript-eslint |
