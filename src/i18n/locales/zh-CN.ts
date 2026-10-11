@@ -251,6 +251,11 @@ export default {
     selectNone: '全不选',
     invertSelection: '反选',
     selectedCount: '已选 {count} 个接口',
+    collapseGroup: '折叠该组',
+    expandGroup: '展开该组',
+    duplicateCollectionName: '集合名称「{name}」已存在，请换一个名称',
+    duplicateGroupName: '组名重复',
+    resolveDuplicateGroupNames: '存在重复的组名，请修改一致后再关闭',
   },
   contextMenu: {
     actions: '请求标签操作',

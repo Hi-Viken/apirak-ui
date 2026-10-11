@@ -251,6 +251,11 @@ export default {
     selectNone: '全不選',
     invertSelection: '反選',
     selectedCount: '已選 {count} 個介面',
+    collapseGroup: '折疊該組',
+    expandGroup: '展開該組',
+    duplicateCollectionName: '集合名稱「{name}」已存在，請換一個名稱',
+    duplicateGroupName: '組名重複',
+    resolveDuplicateGroupNames: '存在重複的組名，請修改一致後再關閉',
   },
   contextMenu: {
     actions: '請求分頁操作',

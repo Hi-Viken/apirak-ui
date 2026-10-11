@@ -297,6 +297,9 @@ async function onImportFile(event: Event) {
     const imported = JSON.parse(await file.text())
     if (!imported.name || !Array.isArray(imported.requests) || imported.requests.some((item: any) => !item?.draft || !props.operations.some((op) => op.id === item.operationId)))
       throw new Error('Invalid collection or operations not present in this specification.')
+    if (props.collections.some((item) => item.name.trim().toLowerCase() === String(imported.name).trim().toLowerCase())) {
+      throw new Error(t('runner.duplicateCollectionName', { name: String(imported.name).trim() }))
+    }
     const entry = { ...imported, id: crypto.randomUUID() }
     emit('change', [...props.collections, entry])
     selected.value = entry.id
@@ -311,7 +314,13 @@ function exportCollection() {
 }
 
 function createCollection() {
-  const entry = { id: crypto.randomUUID(), name: name.value.trim(), requests: [], delay: 0 }
+  const trimmed = name.value.trim()
+  if (!trimmed) return
+  if (props.collections.some((item) => item.name.trim().toLowerCase() === trimmed.toLowerCase())) {
+    props.notify(t('runner.duplicateCollectionName', { name: trimmed }), true)
+    return
+  }
+  const entry = { id: crypto.randomUUID(), name: trimmed, requests: [], delay: 0 }
   emit('change', [...props.collections, entry])
   selected.value = entry.id
 }

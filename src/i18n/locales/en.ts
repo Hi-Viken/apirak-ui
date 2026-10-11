@@ -252,6 +252,11 @@ export default {
     selectNone: 'None',
     invertSelection: 'Invert',
     selectedCount: '{count} request(s) selected',
+    collapseGroup: 'Collapse group',
+    expandGroup: 'Expand group',
+    duplicateCollectionName: 'A collection named "{name}" already exists. Choose another name.',
+    duplicateGroupName: 'Duplicate group name',
+    resolveDuplicateGroupNames: 'Some groups share the same name. Rename them before closing.',
   },
   contextMenu: {
     actions: 'Request tab actions',

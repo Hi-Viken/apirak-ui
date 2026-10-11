@@ -6,6 +6,14 @@
 
     <div v-for="group in groups" :key="group.id" class="group-card">
       <div class="group-head">
+        <IconButton
+          :label="expanded[group.id] ? t('runner.collapseGroup') : t('runner.expandGroup')"
+          class="collapse-btn"
+          @click="toggleExpand(group.id)"
+        >
+          <ChevronDown v-if="expanded[group.id]" :size="16" />
+          <ChevronRight v-else :size="16" />
+        </IconButton>
         <input
           class="group-name"
           :value="group.name"
@@ -16,64 +24,68 @@
           <Trash2 :size="15" />
         </IconButton>
       </div>
+      <p v-if="nameIsDuplicate(group.id)" class="name-warn">{{ t('runner.duplicateGroupName') }}</p>
 
-      <section class="targets-section">
-        <div class="targets-head">
-          <h4>{{ $t('runner.selectTargets') }}</h4>
-          <div class="targets-actions">
-            <button type="button" class="link" @click="selectAll(group.id)">{{ $t('runner.selectAll') }}</button>
-            <button type="button" class="link" @click="selectNone(group.id)">{{ $t('runner.selectNone') }}</button>
-            <button type="button" class="link" @click="invert(group.id)">{{ $t('runner.invertSelection') }}</button>
+      <div class="group-body" v-show="expanded[group.id]">
+        <section class="targets-section">
+          <div class="targets-head">
+            <h4>{{ $t('runner.selectTargets') }}</h4>
+            <div class="targets-actions">
+              <button type="button" class="link" @click="selectAll(group.id)">{{ $t('runner.selectAll') }}</button>
+              <button type="button" class="link" @click="selectNone(group.id)">{{ $t('runner.selectNone') }}</button>
+              <button type="button" class="link" @click="invert(group.id)">{{ $t('runner.invertSelection') }}</button>
+            </div>
           </div>
-        </div>
-        <p class="selected-count">{{ $t('runner.selectedCount', { count: group.targets?.length || 0 }) }}</p>
-        <ul class="targets-list">
-          <li v-for="item in requests" :key="item.id">
-            <label>
-              <input type="checkbox" :checked="(group.targets || []).includes(item.id)" @change="toggleTarget(group.id, item.id)" />
-              <span>{{ item.label }}</span>
-            </label>
-          </li>
-        </ul>
-      </section>
+          <p class="selected-count">{{ $t('runner.selectedCount', { count: group.targets?.length || 0 }) }}</p>
+          <ul class="targets-list">
+            <li v-for="item in requests" :key="item.id">
+              <label>
+                <input type="checkbox" :checked="(group.targets || []).includes(item.id)" @change="toggleTarget(group.id, item.id)" />
+                <span>{{ item.label }}</span>
+              </label>
+            </li>
+          </ul>
+        </section>
 
-      <section>
-        <h4>{{ $t('request.headers') }}</h4>
-        <KeyValueEditor
-          :rows="group.headers || []"
-          :variables="variables"
-          :output-definitions="outputDefinitions"
-          :add-label="$t('request.addHeader')"
-          @change="(rows) => setHeaders(group.id, rows)"
-        />
-      </section>
-      <section>
-        <h4>{{ $t('request.parameters') }}</h4>
-        <KeyValueEditor
-          :rows="group.parameters || []"
-          :variables="variables"
-          :output-definitions="outputDefinitions"
-          locations
-          :add-label="$t('request.addParameter')"
-          @change="(rows) => setParameters(group.id, rows)"
-        />
-      </section>
+        <section>
+          <h4>{{ $t('request.headers') }}</h4>
+          <KeyValueEditor
+            :rows="group.headers || []"
+            :variables="variables"
+            :outputDefinitions="outputDefinitions"
+            :add-label="$t('request.addHeader')"
+            @change="(rows) => setHeaders(group.id, rows)"
+          />
+        </section>
+        <section>
+          <h4>{{ $t('request.parameters') }}</h4>
+          <KeyValueEditor
+            :rows="group.parameters || []"
+            :variables="variables"
+            :outputDefinitions="outputDefinitions"
+            locations
+            :add-label="$t('request.addParameter')"
+            @change="(rows) => setParameters(group.id, rows)"
+          />
+        </section>
+      </div>
     </div>
 
     <div class="group-actions">
       <button type="button" class="primary" @click="addGroup">+ {{ $t('runner.addGroup') }}</button>
     </div>
 
+    <p v-if="duplicateError" class="name-warn">{{ $t('runner.resolveDuplicateGroupNames') }}</p>
     <div class="modal-actions">
-      <button type="button" class="primary" @click="$emit('close')">{{ $t('runner.done') }}</button>
+      <button type="button" class="primary" @click="tryClose">{{ $t('runner.done') }}</button>
     </div>
   </Modal>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Trash2 } from 'lucide-vue-next'
+import { ChevronDown, ChevronRight, Trash2 } from 'lucide-vue-next'
 import Modal from './Modal.vue'
 import KeyValueEditor from './KeyValueEditor.vue'
 import IconButton from './IconButton.vue'
@@ -103,6 +115,37 @@ const { t } = useI18n()
 
 // 本地副本：编辑只动这份，持续 emit 干净（JSON 安全）的对象，由父级落盘。
 const groups = ref<GroupModel[]>(JSON.parse(JSON.stringify(props.settings || [])))
+
+// 展开状态仅用于界面交互，不写入集合数据；默认全部折叠（未展开即折叠）
+const expanded = ref<Record<string, boolean>>({})
+function toggleExpand(id: string) {
+  expanded.value = { ...expanded.value, [id]: !expanded.value[id] }
+}
+
+// 组名去重：trim + 大小写不敏感比较；空名不参与判定。存在重复时阻止关闭弹窗。
+const duplicateNames = computed(() => {
+  const counts = new Map<string, number>()
+  for (const g of groups.value) {
+    const n = (g.name || '').trim().toLowerCase()
+    if (!n) continue
+    counts.set(n, (counts.get(n) || 0) + 1)
+  }
+  const dups = new Set<string>()
+  for (const [name, count] of counts) if (count > 1) dups.add(name)
+  return dups
+})
+function nameIsDuplicate(id: string): boolean {
+  const name = (groups.value.find((g) => g.id === id)?.name || '').trim().toLowerCase()
+  return name !== '' && duplicateNames.value.has(name)
+}
+const duplicateError = ref(false)
+function tryClose() {
+  if (duplicateNames.value.size > 0) {
+    duplicateError.value = true
+    return
+  }
+  emit('close')
+}
 
 function emitChange() {
   emit('change', JSON.parse(JSON.stringify(groups.value)))
@@ -198,6 +241,21 @@ function invert(groupId: string) {
   align-items: center;
   gap: 8px;
 }
+.collapse-btn {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  padding: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  border-radius: 4px;
+  flex: none;
+}
+.collapse-btn:hover {
+  background: var(--surface-alt);
+  color: var(--text);
+}
 .group-name {
   flex: 1;
   font-size: 13px;
@@ -220,7 +278,7 @@ function invert(groupId: string) {
   gap: 12px;
 }
 .targets-head h4,
-.group-card > section h4 {
+.group-card section h4 {
   margin: 0;
   font-size: 12px;
   font-weight: 600;
@@ -271,5 +329,10 @@ function invert(groupId: string) {
 .modal-actions {
   display: flex;
   justify-content: flex-end;
+}
+.name-warn {
+  margin: 0 0 10px;
+  font-size: 12px;
+  color: var(--error);
 }
 </style>
