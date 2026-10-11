@@ -21,6 +21,7 @@ The only difference is the build mode (`--mode dotnet` rewrites asset references
 
 ## Table of Contents
 
+- [Why Apirak](#why-apirak)
 - [Features](#features)
 - [Interface Preview](#interface-preview)
 - [Tech Stack](#tech-stack)
@@ -38,6 +39,25 @@ The only difference is the build mode (`--mode dotnet` rewrites asset references
 - [Testing](#testing)
 - [FAQ](#faq)
 - [License](#license)
+
+---
+
+## Why Apirak
+
+Two concrete frustrations shaped this project:
+
+| Tool | What falls short |
+| --- | --- |
+| **Swagger UI** | Reads and renders the spec fine, then stops. No collections, no batch runner, no chained variables, no client-code generation — the moment you move from "look at the API" to "actually work with it", you hit the ceiling. |
+| **Scalar** | Goes further in capability, but its interaction model never matched the way we debug APIs day to day — the operations disrupt instead of disappearing. |
+
+Apirak closes that gap from both sides: it keeps what makes a spec browser pleasant, adds the workbench layer Swagger UI is missing, and still stays trivial to deploy.
+
+- **A workbench, not just a viewer** — collections, batch Runner, variables and chained outputs, OAuth2 flows, multi-language snippets and client SDK generation.
+- **Zero backend by default** — workspace state lives in `localStorage`: no accounts, no database, no service to run.
+- **.NET-native embedding** — the built `dist/` ships inside a class library and mounts under any path prefix with two lines, served from the same origin as your `MapOpenApi()` document.
+
+In short: **capability that outgrows Swagger UI, interaction that stays out of your way.**
 
 ---
 
