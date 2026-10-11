@@ -50,6 +50,92 @@ export function parseSpec(text: string): any {
   return spec
 }
 
+/**
+ * 从远端 URL 取回 OpenAPI 规范文本时，把所有「取不到」的情况统一成带 code 的
+ * SpecFetchError，让 UI 能给出针对性提示（CORS / 404 / 超时 / 网络不通 …），
+ * 而不是只把浏览器那句含糊的 "Failed to fetch" 原样弹出来。
+ *
+ * 为什么需要它：浏览器出于安全，跨域被拦截（CORS）和 DNS/离线/服务未启动（网络不通）
+ * 抛出的是同一个 TypeError("Failed to fetch")，fetch 拿不到状态码也拿不到响应头。
+ * 所以 `network` 这一类只能靠「同源判断 + 提示各种可能性」来帮用户定位，
+ * 真正的 CORS 修复要靠服务端加 `Access-Control-Allow-Origin`，或走本应用的 /api-proxy 代理。
+ */
+export type SpecFetchErrorCode =
+  | 'invalidUrl'
+  | 'unsupportedProtocol'
+  | 'timeout'
+  | 'http'
+  | 'network'
+  | 'empty'
+
+export class SpecFetchError extends Error {
+  code: SpecFetchErrorCode
+  /** HTTP 错误状态码（code === 'http' 时） */
+  status?: number
+  statusText?: string
+  /** 实际请求的地址（便于提示里点明是哪个 URL） */
+  url?: string
+  /** 额外原始信息，如非法输入串（code === 'invalidUrl' 时） */
+  detail?: string
+  constructor(
+    code: SpecFetchErrorCode,
+    message: string,
+    extra: { status?: number; statusText?: string; url?: string; detail?: string } = {}
+  ) {
+    super(message)
+    this.name = 'SpecFetchError'
+    this.code = code
+    this.status = extra.status
+    this.statusText = extra.statusText
+    this.url = extra.url
+    this.detail = extra.detail
+  }
+}
+
+export async function fetchOpenApiFromUrl(
+  input: string,
+  options: { timeout?: number; signal?: AbortSignal } = {}
+): Promise<{ text: string; url: string }> {
+  let url: URL
+  try {
+    url = new URL(input, location.href)
+  } catch {
+    throw new SpecFetchError('invalidUrl', `Invalid URL: ${input}`, { detail: input })
+  }
+  if (!['http:', 'https:'].includes(url.protocol))
+    throw new SpecFetchError('unsupportedProtocol', `Only HTTP/HTTPS URLs are supported (got ${url.protocol}).`, {
+      url: url.href,
+    })
+  // 超时用 AbortController 兜住，避免服务无响应时界面一直转圈还报不出所以然。
+  const controller = new AbortController()
+  const timeoutMs = options.timeout ?? 20000
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
+  let response: Response
+  try {
+    response = await fetch(url, { signal: options.signal ?? controller.signal })
+  } catch (err: any) {
+    clearTimeout(timer)
+    if (err?.name === 'AbortError')
+      throw new SpecFetchError('timeout', `Request timed out after ${Math.round(timeoutMs / 1000)}s.`, {
+        url: url.href,
+      })
+    // TypeError: Failed to fetch —— 既可能是 CORS 拦截，也可能是 DNS/离线/服务未启动。
+    // 浏览器不会透露具体原因，故 code 统一为 network，由 UI 给出 CORS 与其他可能性的区分提示。
+    throw new SpecFetchError('network', `Failed to fetch ${url.href}.`, { url: url.href })
+  }
+  clearTimeout(timer)
+  if (!response.ok)
+    throw new SpecFetchError('http', `Server returned ${response.status} ${response.statusText || ''}.`, {
+      status: response.status,
+      statusText: response.statusText,
+      url: url.href,
+    })
+  const text = await response.text()
+  if (!text.trim())
+    throw new SpecFetchError('empty', `Server returned an empty body for ${url.href}.`, { url: url.href })
+  return { text, url: url.href }
+}
+
 /** OpenAPI Tag Object 的可选元数据（description / externalDocs）。 */
 export interface TagMeta {
   description?: string

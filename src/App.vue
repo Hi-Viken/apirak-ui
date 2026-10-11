@@ -45,6 +45,10 @@
       v-if="toast"
       :class="['toast', { 'toast-error': toast.failure }]"
       :role="toast.failure ? 'alert' : 'status'"
+      @mouseenter="pauseToast"
+      @mouseleave="resumeToast"
+      @focusin="pauseToast"
+      @focusout="resumeToast"
     >
       {{ toast.message }}
       <IconButton :label="$t('app.dismissNotification')" @click="toast = null">
@@ -116,7 +120,19 @@ const importKey = `apirak:last-import:${location.pathname}`
 function notify(message: string, failure = false) {
   toast.value = { message, failure }
   clearTimeout(toastTimer)
-  toastTimer = setTimeout(() => (toast.value = null), 6000)
+  toastTimer = setTimeout(() => (toast.value = null), 8000)
+}
+
+// 鼠标悬停或焦点在提示框内时暂停自动消失，避免用户正在阅读/选中文字时提示被清掉
+function pauseToast() {
+  clearTimeout(toastTimer)
+}
+
+// 离开提示框后重新开始较短的倒计时
+function resumeToast() {
+  if (!toast.value) return
+  clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => (toast.value = null), 4000)
 }
 
 function retryImport() {

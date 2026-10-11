@@ -175,6 +175,26 @@ export default {
     sampleApi: 'Sample API',
     interactiveApi: 'Interactive API',
     authSchemes: 'Authentication schemes',
+    errors: {
+      // Targeted hints when importing from a URL fails — turn the browser's vague
+      // "Failed to fetch" into something actionable (CORS / 404 / timeout / network).
+      invalidUrl: 'Could not parse this URL: {input}. Make sure it is complete and starts with http:// or https://.',
+      unsupportedProtocol: 'Only HTTP and HTTPS specification URLs are supported.',
+      timeout: 'Request timed out ({seconds}s with no response). Check that the service is up and the address is reachable; retry later if the network is slow.',
+      http: 'Server returned {status} {statusText}; could not read the spec.',
+      httpHint404: 'The address does not exist or the path is wrong — double-check the URL spelling and confirm an OpenAPI document actually lives at that path (commonly /v3/api-docs, /openapi.json, /swagger/v1/swagger.json).',
+      httpHintAuth: 'This address requires authentication ({status}). The URL importer sends no credentials, so import the file directly instead, or go through an authenticating proxy.',
+      httpHintMethod: 'This address does not allow GET requests ({status} {statusText}).',
+      httpHintServer: 'The target service returned a server/gateway error ({status}); check that it is running.',
+      httpHintGeneric: 'Confirm the URL points to a valid OpenAPI 3.x / Swagger 2.0 document (JSON or YAML).',
+      network: 'Could not reach the address (the request was blocked by the browser, or the network is down). For security the browser does not reveal the exact failure, so the cause cannot be determined — possible reasons include:',
+      networkCauseCors: 'a cross-origin (CORS) block — the server did not return an allow-cross-origin header, so the browser refused the response.',
+      networkCauseOther: 'a typo in the address, the service being down, or network isolation (container, intranet, VPN).',
+      networkFix: 'If it is a CORS issue, you can: ① have the server return an Access-Control-Allow-Origin header; ② use this app\'s proxy (set VITE_API_BASE_URL in .env, then change the URL to a same-origin /api-proxy/... path); ③ download the document and import it via the File tab.',
+      networkHintProxy: 'Tip: VITE_API_BASE_URL is configured. If the target is same-origin with that proxy backend, change the URL to a /api-proxy/... path and import again.',
+      networkHintProxyTried: 'Tip: we already retried automatically through this app\'s /api-proxy proxy but it still failed. That does not rule out CORS (the proxy route may not be active), so also check the address spelling and the service itself.',
+      empty: 'The server returned an empty body; nothing to parse as a spec.',
+    },
   },
   runner: {
     title: 'Collection runner',
