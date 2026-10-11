@@ -292,8 +292,17 @@ export default {
   history: {
     title: 'History',
     clear: 'Clear history',
+    remove: 'Delete this entry',
     empty: 'No requests in history.',
     error: 'Error',
+    url: 'Request URL',
+    requestHeaders: 'Request Headers',
+    requestBody: 'Request Body',
+    responseHeaders: 'Response Headers',
+    responseBody: 'Response Body',
+    none: 'None',
+    openRequest: 'Open in request',
+    bodyTruncated: 'Oversized content was truncated to save local storage',
   },
   code: {
     title: 'Code',

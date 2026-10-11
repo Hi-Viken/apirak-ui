@@ -176,6 +176,11 @@ export function workspaceReducer(state: any, action: any): any {
         ...state,
         history: [action.entry, ...state.history].slice(0, HISTORY_LIMIT),
       }
+    case 'historyRemove':
+      return {
+        ...state,
+        history: state.history.filter((item: any) => item.id !== action.id),
+      }
     case 'favorite':
       return {
         ...state,

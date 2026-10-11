@@ -291,8 +291,17 @@ export default {
   history: {
     title: '歷史',
     clear: '清除歷史',
+    remove: '刪除該筆記錄',
     empty: '暫無請求歷史。',
     error: '錯誤',
+    url: '請求地址',
+    requestHeaders: '請求頭',
+    requestBody: '請求體',
+    responseHeaders: '響應頭',
+    responseBody: '響應體',
+    none: '無',
+    openRequest: '在請求中開啟',
+    bodyTruncated: '超長內容已被截斷以節省本機儲存空間',
   },
   code: {
     title: '程式碼',

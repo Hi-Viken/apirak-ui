@@ -296,6 +296,7 @@
           :history="state.history"
           @open="onHistoryOpen"
           @clear="dispatch({ type: 'update', patch: { history: [] } })"
+          @remove="(id: string) => dispatch({ type: 'historyRemove', id })"
         />
         <Authorization
           v-else-if="view === 'auth'"
@@ -768,6 +769,8 @@ async function execute(
   }
   if (signal?.aborted) throw new DOMException('Request cancelled', 'AbortError')
   responses.value = { ...responses.value, [item.id]: response }
+  const reqBody = capHistoryBody(response.requestBody)
+  const respBody = capHistoryBody(response.body)
   dispatch({
     type: 'history',
     entry: {
@@ -778,6 +781,12 @@ async function execute(
       status: response.status,
       duration: response.duration,
       at: new Date().toISOString(),
+      url: response.url,
+      requestHeaders: redactSensitiveHeaders(response.requestHeaders),
+      requestBody: reqBody.value,
+      responseHeaders: response.headers || {},
+      responseBody: respBody.value,
+      bodyTruncated: reqBody.truncated || respBody.truncated,
     },
   })
   let nextVariables = variables
@@ -835,6 +844,25 @@ async function send(requestFiles: Record<string, File | undefined>) {
     controllers.delete(id)
     pending.value = { ...pending.value, [id]: false }
   }
+}
+
+// 历史记录会写入 localStorage（上限 HISTORY_LIMIT 条），为防止超出配额导致整体持久化失败，
+// 对请求体/响应体做长度截断；超出时标记 bodyTruncated，UI 会给出提示。
+const HISTORY_BODY_LIMIT = 20000
+function capHistoryBody(value?: string): { value: string; truncated: boolean } {
+  if (!value) return { value: '', truncated: false }
+  if (value.length <= HISTORY_BODY_LIMIT) return { value, truncated: false }
+  return { value: value.slice(0, HISTORY_BODY_LIMIT), truncated: true }
+}
+
+// 与发送请求时 response.request 的脱敏规则保持一致：不把鉴权/密钥类请求头原文落盘到 localStorage。
+function redactSensitiveHeaders(headers?: Record<string, string>): Record<string, string> {
+  if (!headers) return {}
+  const result: Record<string, string> = {}
+  for (const [name, value] of Object.entries(headers)) {
+    result[name] = /authorization|cookie|key|token|secret/i.test(name) ? '[redacted]' : value
+  }
+  return result
 }
 
 function cancelRequest() {

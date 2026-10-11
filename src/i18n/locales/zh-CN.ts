@@ -291,8 +291,17 @@ export default {
   history: {
     title: '历史',
     clear: '清除历史',
+    remove: '删除该条记录',
     empty: '暂无请求历史。',
     error: '错误',
+    url: '请求地址',
+    requestHeaders: '请求头',
+    requestBody: '请求体',
+    responseHeaders: '响应头',
+    responseBody: '响应体',
+    none: '无',
+    openRequest: '在请求中打开',
+    bodyTruncated: '超长内容已被截断以节省本地存储空间',
   },
   code: {
     title: '代码',
