@@ -47,12 +47,6 @@ export interface ResponseData extends Record<string, any> {
   blob?: Blob
 }
 
-export interface SavedRequest {
-  collectionId: string
-  requestId: string
-  operationId?: string
-}
-
 export interface CollectionRequest {
   id: string
   operationId: string
